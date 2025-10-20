@@ -1,24 +1,18 @@
 import bot.database_client
 import bot.telegram_client
 import time
+from bot.dispatcher import Dispatcher
+from bot.handlers.database_logger import DatabaseLogger
+from bot.handlers.message_echo import MessageEcho
+from bot.handlers.message_photo_echo import MessagePhotoEcho
+from bot.long_polling import start_long_polling
 
 def main() -> None:
     next_update_offset=0
     try:
-        while True:
-            updates = bot.telegram_client.getUpdates(next_update_offset)
-            bot.database_client.persist_updates(updates)
-            for update in updates:
-                try:
-                    bot.telegram_client.sendMessage(
-                        chat_id=update["message"]["chat"]["id"],
-                        text=update["message"]["text"],
-                    )
-                    print(".", end="", flush=True)
-                except:
-                    pass
-                next_update_offset=max(next_update_offset, update["update_id"]+1)
-            time.sleep(1)
+        dispatcher = Dispatcher()
+        dispatcher.add_handler(DatabaseLogger(), MessagePhotoEcho(), MessageEcho())
+        start_long_polling(dispatcher)
     except KeyboardInterrupt:
         print("\nBye!")
     
