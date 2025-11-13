@@ -7,6 +7,7 @@ from bot.handlers.drink_selection import DrinkSelectionHandler
 from bot.handlers.order_approval import ApprovalHandler
 from bot.handlers.order_final_state import OrderFinalStateHandler
 
+
 def get_handlers() -> list[Handler]:
     return [
         DatabaseLogger(),

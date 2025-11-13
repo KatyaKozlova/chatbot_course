@@ -2,7 +2,11 @@
 
 bot/__pycache__
 bot/handlers/__pycache__
-
+bot/domain/__pycache__
 .sqlite
 
 .env
+
+.ruff_cache
+
+.pytest_cache
