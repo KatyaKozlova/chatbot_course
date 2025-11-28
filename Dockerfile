@@ -12,6 +12,7 @@ RUN python -m venv /app/venv && \
     /app/venv/bin/pip install --no-cache-dir -r requirements.txt
 
 ENV PATH="/app/venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
 
 COPY bot/ ./bot/
 
