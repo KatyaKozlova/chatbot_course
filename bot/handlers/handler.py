@@ -21,7 +21,7 @@ class Handler(ABC):
         messenger: Messenger,
     ) -> bool: ...
 
-    def handle(
+    async def handle(
         self,
         update: dict,
         state: str,

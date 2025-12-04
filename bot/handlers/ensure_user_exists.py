@@ -14,7 +14,7 @@ class EnsureUserExists(Handler):
     ) -> bool:
         return "message" in update and "from" in update["message"]
 
-    def handle(
+    async def handle(
         self,
         update: dict,
         state: str,
@@ -23,5 +23,5 @@ class EnsureUserExists(Handler):
         messenger: Messenger,
     ) -> bool:
         telegram_id = update["message"]["chat"]["id"]
-        storage.ensure_user_exists(telegram_id)
+        await storage.ensure_user_exists(telegram_id)
         return HandlerStatus.CONTINUE

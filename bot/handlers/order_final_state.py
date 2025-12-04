@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 from bot.domain.messenger import Messenger
@@ -23,7 +24,7 @@ class OrderFinalStateHandler(Handler):
         callback_data = update["callback_query"]["data"]
         return callback_data.startswith("approval_")
 
-    def handle(
+    async def handle(
         self,
         update: dict,
         state: str,
@@ -38,23 +39,25 @@ class OrderFinalStateHandler(Handler):
             callback_data.replace("approval_", "").replace("_", " ").title()
         )
         if approval_answer == "Yes":
-            storage.update_user_state(telegram_id, "ORDER_FINISHED")
-            messenger.delete_message(
-                chat_id=update["callback_query"]["message"]["chat"]["id"],
-                message_id=update["callback_query"]["message"]["message_id"],
+            await asyncio.gather(
+                storage.update_user_state(telegram_id, "ORDER_FINISHED"),
+                messenger.delete_message(
+                    chat_id=update["callback_query"]["message"]["chat"]["id"],
+                    message_id=update["callback_query"]["message"]["message_id"],
+                ),
             )
-            messenger.send_message(
+            await messenger.send_message(
                 chat_id=update["callback_query"]["message"]["chat"]["id"],
                 text="Thank you for your order! Please wait! Your order is being prepared.",
             )
         elif approval_answer == "No":
-            messenger.delete_message(
+            await messenger.delete_message(
                 chat_id=update["callback_query"]["message"]["chat"]["id"],
                 message_id=update["callback_query"]["message"]["message_id"],
             )
-            storage.clear_user_state_and_order(telegram_id)
-            storage.update_user_state(telegram_id, "WAIT_FOR_PIZZA_NAME")
-            messenger.send_message(
+            await storage.clear_user_state_and_order(telegram_id)
+            await storage.update_user_state(telegram_id, "WAIT_FOR_PIZZA_NAME")
+            await messenger.send_message(
                 chat_id=update["callback_query"]["message"]["chat"]["id"],
                 text="Please, choose Pizza Type",
                 reply_markup=json.dumps(

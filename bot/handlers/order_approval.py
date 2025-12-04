@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 from bot.domain.messenger import Messenger
@@ -23,7 +24,7 @@ class ApprovalHandler(Handler):
         callback_data = update["callback_query"]["data"]
         return callback_data.startswith("drink_")
 
-    def handle(
+    async def handle(
         self,
         update: dict,
         state: str,
@@ -36,17 +37,15 @@ class ApprovalHandler(Handler):
 
         drink = callback_data.replace("drink_", "").replace("_", " ").title()
         order_json["drink"] = drink
-        storage.update_user_state_and_order(telegram_id, order_json)
-        storage.update_user_state(telegram_id, "WAIT_FOR_APPROVAL")
-        messenger.answer_callback_query(update["callback_query"]["id"])
-        messenger.delete_message(
-            chat_id=update["callback_query"]["message"]["chat"]["id"],
-            message_id=update["callback_query"]["message"]["message_id"],
+        await asyncio.gather(
+            storage.update_user_state_and_order(telegram_id, order_json),
+            storage.update_user_state(telegram_id, "WAIT_FOR_APPROVAL"),
+            messenger.answer_callback_query(update["callback_query"]["id"]),
         )
+
         pizza_name = order_json.get("pizza_name", "Unknown")
         pizza_size = order_json.get("pizza_size", "Unknown")
         drink = order_json.get("drink", "Unknown")
-
         order_summary = f"""**Your Order:**
 
 **Pizza:** {pizza_name}
@@ -54,22 +53,27 @@ class ApprovalHandler(Handler):
 **Drink:** {drink}
 
 Is everything OK?"""
-
-        messenger.send_message(
-            chat_id=update["callback_query"]["message"]["chat"]["id"],
-            text=order_summary,
-            parse_mode="Markdown",
-            reply_markup=json.dumps(
-                {
-                    "inline_keyboard": [
-                        [
-                            {"text": "Yes", "callback_data": "approval_yes"},
+        await asyncio.gather(
+            messenger.delete_message(
+                chat_id=update["callback_query"]["message"]["chat"]["id"],
+                message_id=update["callback_query"]["message"]["message_id"],
+            ),
+            messenger.send_message(
+                chat_id=update["callback_query"]["message"]["chat"]["id"],
+                text=order_summary,
+                parse_mode="Markdown",
+                reply_markup=json.dumps(
+                    {
+                        "inline_keyboard": [
+                            [
+                                {"text": "Yes", "callback_data": "approval_yes"},
+                            ],
+                            [
+                                {"text": "No", "callback_data": "approval_no"},
+                            ],
                         ],
-                        [
-                            {"text": "No", "callback_data": "approval_no"},
-                        ],
-                    ],
-                },
+                    },
+                ),
             ),
         )
         return HandlerStatus.STOP
